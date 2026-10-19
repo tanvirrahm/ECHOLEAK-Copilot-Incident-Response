@@ -1,0 +1,66 @@
+// Select and run one query at a time. Validate session linkage before attribution.
+// Absence in this window does not establish absence across full history.
+
+// 1 Email delivery
+OfficeActivity_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserId == "emily.chen@cormorantcapital.com"
+| where Operation == "MessageReceived"
+| where AttachmentNames contains "Q3-2026-Global-Markets-Review.docx"
+| project TimeGenerated, Operation, AttachmentNames, Subject, SenderAddress
+| order by TimeGenerated asc
+
+// 2 First attachment access
+OfficeActivity_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserId == "emily.chen@cormorantcapital.com"
+| where Operation == "FileAccessed"
+| where OfficeObjectId contains "Q3-2026-Global-Markets-Review.docx"
+| project TimeGenerated, Operation, OfficeObjectId
+| order by TimeGenerated asc
+
+// 3 User request
+CopilotAudit_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserId == "emily.chen@cormorantcapital.com"
+| where InteractionType contains "prompt"
+| project TimeGenerated, UserPrompt, DataSourcesAccessed
+| order by TimeGenerated asc
+
+// 4 Graph tools
+CopilotAudit_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserId == "emily.chen@cormorantcapital.com"
+| where ToolName in ("Graph.SearchFiles", "Graph.ReadFile")
+| project TimeGenerated, ToolName, ToolParameters
+| order by TimeGenerated asc
+
+// 5 External response references
+CopilotAudit_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserId == "emily.chen@cormorantcapital.com"
+| where CopilotResponse contains "metrics-cdn.analyticshub.io"
+| project TimeGenerated, CopilotResponse
+| order by TimeGenerated asc
+
+// 6 File accesses excluding source document
+OfficeActivity_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserId == "emily.chen@cormorantcapital.com"
+| where Operation == "FileAccessed"
+| where OfficeObjectId !contains "Q3-2026-Global-Markets-Review.docx"
+| project TimeGenerated, OfficeObjectId
+| order by TimeGenerated asc
+
+// 7 Sign-in review
+EntraSignIn_CL
+| where RunId == "el--17-20260920"
+| where TimeGenerated between (datetime(2026-09-20T09:00:00Z) .. datetime(2026-09-20T11:00:00Z))
+| where UserPrincipalName == "emily.chen@cormorantcapital.com"
+| order by TimeGenerated asc
